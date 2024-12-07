@@ -67,8 +67,8 @@ public class PlayerController : MonoBehaviour
     void FixedUpdate()
     {
         //ゴールやゲームオーバー時には処理を停止
-        //if(gameState != "playing")
-        //    return;
+        if (gameState != "playing")
+            return;
 
         //接地判定を更新
         isGrounded = Physics2D.OverlapCircle(groundCheck.position, groundCheckRadius, groundLayer);
@@ -134,7 +134,11 @@ public class PlayerController : MonoBehaviour
         }
         else if (collision.gameObject.tag == "Dead")
         {
-            GameOver(); //ゲームオーバー
+            //衝突した相手の方向を計算 TopViewGameを応用 ★GPTより
+            Vector3 v = (transform.position - collision.transform.position).normalized;
+
+            //GameOverメソッドを呼び出し、方向を引数として渡す
+            GameOver(v);
         }
     }
 
@@ -146,7 +150,7 @@ public class PlayerController : MonoBehaviour
         gameState = "gameclear";
         GameStop(); //ゲーム停止
 
-        //上に跳ね上げる(その後消えてクリアにしたい)
+        //上に跳ね上げる(その後消えてクリアにしたい) ★GPTより
         rb.AddForce(new Vector2(0, 10), ForceMode2D.Impulse);
 
         //StartCoroutinを使ってアニメーション終了後の処理を実行 ★GPTより
@@ -167,18 +171,25 @@ public class PlayerController : MonoBehaviour
     }
 
     //ゲームオーバー
-    public void GameOver()
+    public void GameOver(Vector3 hitDirection)
     {
         animator.Play(hitAnime);
 
         gameState = "gameover";
         GameStop();
 
+        //カメラを揺らす ★GPTより
+        Camera.main.GetComponent<CameraShake>().ShakeCamera();
+
+        //Rigidbody2DのfreezeRotationを解除
+        rb.freezeRotation = false;
+
         //ゲームオーバー演出
         //プレイヤーの当たり判定を消す
         GetComponent<CapsuleCollider2D>().enabled = false;
-        //プレイヤーを左上に跳ね上げる
-        rb.AddForce(new Vector2(-3, 5), ForceMode2D.Impulse);
+
+        //引数で渡された方向にヒットバックさせる ★GPTより
+        rb.AddForce(new Vector2(hitDirection.x * 4, hitDirection.y * 4), ForceMode2D.Impulse);
 
     }
 
