@@ -161,7 +161,7 @@ public class PlayerController : MonoBehaviour
     IEnumerator GoalAnimationEnd()
     {
         //現在のアニメーションが終了するのを待つ
-        while(animator.GetCurrentAnimatorStateInfo(0).normalizedTime < 1.0f || animator.GetCurrentAnimatorStateInfo(0).IsName(goalAnime) == false)
+        while (animator.GetCurrentAnimatorStateInfo(0).normalizedTime < 1.0f || animator.GetCurrentAnimatorStateInfo(0).IsName(goalAnime) == false)
         {
             yield return null;  //1フレーム待機
         }
