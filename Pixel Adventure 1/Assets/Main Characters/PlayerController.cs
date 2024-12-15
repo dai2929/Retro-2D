@@ -31,9 +31,9 @@ public class PlayerController : MonoBehaviour
     public static string gameState = "playing"; //ゲームの状態
 
     //足場床用変数
-    private Collider2D currentOneWayTile;   // 現在通過対象となる足場床
     public LayerMask oneWayTile;    //足場床判定対象のレイヤー 足場床用
     public bool isOneWayTile;   //OneWayTile 足場床用
+    public float disableCollisionTime = 0.5f; // 衝突無効化時間（秒）
 
     void Awake()
     {
@@ -155,70 +155,36 @@ public class PlayerController : MonoBehaviour
 
 
     //------------------------------足場床-----------------------------
-    //足場床通過メソッド(下(S)を押すと下に移動＆空中で押すと落下速度UP)　★GPTより
+    //足場床通過メソッド(下(S)を押すと下に移動)　★GPTより
     void Down()
     {
         if (isOneWayTile)
         {
-            // 最も近い足場床を取得
-            Collider2D closestTile = GetClosestOneWayTile();
-
-            if (closestTile != null)
+            // 足場床のコライダーを一時的に無効化
+            Collider2D groundCollider = Physics2D.OverlapCircle(groundCheck.position, groundCheckRadius, oneWayTile);
+            if (groundCollider != null)
             {
-                currentOneWayTile = closestTile;
-
-                // 足場床の通過処理を開始
-                StartCoroutine(DisableCollisionForSpecificTile());
+                StartCoroutine(DisableOneWayTileCollision(groundCollider));
             }
         }
     }
 
-    // 足場床を個別に無効化するコルーチン★GPTより
-    IEnumerator DisableCollisionForSpecificTile()
+    // 足場床との衝突を一時的に無効化するコルーチン
+    IEnumerator DisableOneWayTileCollision(Collider2D oneWayTileCollider)
     {
-        if (currentOneWayTile == null)
-            yield break; // 足場床が設定されていない場合は終了
-
         // プレイヤー自身のコライダーを取得
         Collider2D playerCollider = GetComponent<Collider2D>();
 
-        // 現在の足場床との衝突を無効化
-        Physics2D.IgnoreCollision(playerCollider, currentOneWayTile, true);
+        // 足場床との衝突を無効化
+        Physics2D.IgnoreCollision(playerCollider, oneWayTileCollider, true);
 
-        // プレイヤーが現在の足場床を通過するまで待機
-        while (transform.position.y > currentOneWayTile.bounds.max.y)
-        {
-            yield return null; // 毎フレームチェック
-        }
+        // 少しの間だけ衝突を無効にする 秒数をpublic変数で調節可能に
+        yield return new WaitForSeconds(disableCollisionTime);
 
-        // プレイヤーが通過後、足場床との衝突を再び有効化
-        Physics2D.IgnoreCollision(playerCollider, currentOneWayTile, false);
-
-        // 通過処理が終了したら、現在の足場床をリセット
-        currentOneWayTile = null;
+        // 足場床との衝突を再び有効化
+        Physics2D.IgnoreCollision(playerCollider, oneWayTileCollider, false);
     }
 
-    // プレイヤーに最も近い足場床を取得　★GPTより
-    Collider2D GetClosestOneWayTile()
-    {
-        Collider2D[] colliders = Physics2D.OverlapCircleAll(groundCheck.position, groundCheckRadius, oneWayTile);
-
-        Collider2D closestTile = null;
-        float minDistance = float.MaxValue;
-
-        foreach (var collider in colliders)
-        {
-            float distance = Mathf.Abs(collider.bounds.center.y - transform.position.y);
-
-            if (distance < minDistance)
-            {
-                minDistance = distance;
-                closestTile = collider;
-            }
-        }
-
-        return closestTile;
-    }
     //------------------------------足場床-----------------------------↑
 
     //ゴールかDeadに接触した場合の処理
